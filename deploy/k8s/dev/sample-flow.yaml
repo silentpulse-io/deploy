@@ -1,0 +1,39 @@
+apiVersion: silentpulse.io/v1alpha1
+kind: SilentPulseFlow
+metadata:
+  name: sample-flow
+  namespace: silentpulse
+spec:
+  flowID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  tenantID: "00000000-0000-0000-0000-000000000001"
+  enabled: true
+  infraRef:
+    configMapName: sp-infra
+    secretName: sp-secrets
+  pulses:
+    - pulseID: "11111111-1111-1111-1111-111111111111"
+      label: "Splunk batch worker"
+      enabled: true
+      collectorMode: batch
+      pluginType: splunk
+      schedulerInterval: "5m"
+      timeWindow: "15m"
+      resources:
+        memoryLimitMB: 256
+        cpuMillis: 500
+    - pulseID: "22222222-2222-2222-2222-222222222222"
+      label: "Syslog realtime worker"
+      enabled: true
+      collectorMode: realtime
+      pluginType: syslog
+      schedulerInterval: "5m"
+      timeWindow: "10m"
+      replicas: 1
+      ports:
+        - name: syslog
+          containerPort: 514
+          protocol: UDP
+      serviceType: LoadBalancer
+      resources:
+        memoryLimitMB: 128
+        cpuMillis: 250

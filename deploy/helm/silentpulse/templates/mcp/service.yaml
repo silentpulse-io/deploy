@@ -1,0 +1,18 @@
+{{- if .Values.mcp.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: silentpulse-mcp
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: silentpulse-mcp
+    {{- include "silentpulse.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.mcp.port }}
+      targetPort: {{ .Values.mcp.port }}
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: silentpulse-mcp
+{{- end }}

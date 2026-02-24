@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: silentpulse-notifications
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: silentpulse-notifications
+    {{- include "silentpulse.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.notifications.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: silentpulse-notifications
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: silentpulse-notifications
+    spec:
+      containers:
+        - name: notifications
+          image: {{ .Values.notifications.image }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.notifications.port }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.notifications.port | quote }}
+          envFrom:
+            - configMapRef:
+                name: silentpulse-config
+            - secretRef:
+                name: silentpulse-secret
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.notifications.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.notifications.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml .Values.notifications.resources | nindent 12 }}

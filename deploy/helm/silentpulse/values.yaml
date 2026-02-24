@@ -1,0 +1,158 @@
+global:
+  namespace: silentpulse
+  imagePullPolicy: IfNotPresent
+
+postgresql:
+  enabled: true
+  image: apache/age:release_PG16_1.6.0
+  storage: 5Gi
+  database: silentpulse
+  username: silentpulse
+  password: ""  # Required — generate with: openssl rand -hex 16
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  storage: 1Gi
+  password: ""  # Set in production — generate with: openssl rand -hex 16
+
+api:
+  image: silentpulse-api:latest
+  replicas: 1
+  port: 8080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+frontend:
+  image: silentpulse-frontend:latest
+  replicas: 1
+  port: 3000
+  apiUrl: http://silentpulse-api:8080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+cmdbSync:
+  image: silentpulse-cmdb-sync:latest
+  replicas: 1
+  port: 8082
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+health:
+  image: silentpulse-health:latest
+  replicas: 1
+  port: 8083
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+notifications:
+  image: silentpulse-notifications:latest
+  replicas: 1
+  port: 8084
+  pollInterval: "30s"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+reporting:
+  image: silentpulse-reporting:latest
+  replicas: 1
+  port: 8085
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+worker:
+  image: silentpulse-worker:latest
+
+scheduler:
+  image: silentpulse-scheduler:latest
+
+operator:
+  image: silentpulse-operator:latest
+  replicas: 1
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 128Mi
+
+mcp:
+  enabled: false  # Enable for AI/LLM integration via Model Context Protocol
+  image: silentpulse-mcp:latest
+  replicas: 1
+  port: 8090
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+retentionJob:
+  enabled: false  # Enable for automated data retention cleanup
+  image: silentpulse-retention-job:latest
+  schedule: "0 3 * * *"  # Daily at 03:00 UTC
+  coldStorage:
+    enabled: false
+    endpoint: ""
+    bucket: ""
+    region: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: silentpulse.local
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
+
+auth:
+  jwtSecret: ""  # Required (min 32 chars) — generate with: openssl rand -hex 32
+  jwtExpiry: "24h"
+  encryptionKey: ""
+  healthAPIKey: ""  # External health metrics API key — generate with: openssl rand -hex 32
+  perTenantEncryption: false
+
+license:
+  key: ""
+
+connectorHub:
+  url: "https://hub.silentpulse.io"

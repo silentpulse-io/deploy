@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: silentpulse-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "silentpulse.labels" . | nindent 4 }}
+data:
+  POSTGRES_HOST: silentpulse-postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: {{ .Values.postgresql.database }}
+  POSTGRES_USER: {{ .Values.postgresql.username }}
+  REDIS_ADDR: "silentpulse-redis:6379"
+  JWT_EXPIRY: {{ .Values.auth.jwtExpiry | quote }}
+  NOTIFICATION_POLL_INTERVAL: {{ .Values.notifications.pollInterval | quote }}
+  CONNECTOR_HUB_URL: {{ .Values.connectorHub.url | quote }}
+  WORKER_IMAGE: {{ .Values.worker.image }}
+  SCHEDULER_IMAGE: {{ .Values.scheduler.image }}

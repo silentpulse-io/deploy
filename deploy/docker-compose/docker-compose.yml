@@ -1,0 +1,248 @@
+name: silentpulse
+
+services:
+  # --- Infrastructure ---
+
+  postgres:
+    image: apache/age:release_PG16_1.6.0
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-extensions:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - silentpulse
+
+  redis:
+    image: redis:7-alpine
+    command: >
+      sh -c '
+      if [ -n "$REDIS_PASSWORD" ]; then
+        redis-server --requirepass "$REDIS_PASSWORD"
+      else
+        redis-server
+      fi'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "redis-cli ${REDIS_PASSWORD:+-a $REDIS_PASSWORD --no-auth-warning} ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - silentpulse
+
+  # --- Backend Services ---
+
+  api:
+    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-api:${IMAGE_TAG:-latest}
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET is required - run openssl rand -hex 32}"
+      JWT_EXPIRY: ${JWT_EXPIRY:-24h}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 30s
+      retries: 5
+    networks:
+      - silentpulse
+
+  cmdb-sync:
+    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-cmdb-sync:${IMAGE_TAG:-latest}
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: "8082"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/healthz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    networks:
+      - silentpulse
+
+  health:
+    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-health:${IMAGE_TAG:-latest}
+    ports:
+      - "8083:8083"
+    environment:
+      PORT: "8083"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_ADDR: redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/healthz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    networks:
+      - silentpulse
+
+  notifications:
+    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-notifications:${IMAGE_TAG:-latest}
+    ports:
+      - "8084:8084"
+    environment:
+      PORT: "8084"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      NOTIFICATION_POLL_INTERVAL: ${NOTIFICATION_POLL_INTERVAL:-30s}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/healthz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    networks:
+      - silentpulse
+
+  reporting:
+    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-reporting:${IMAGE_TAG:-latest}
+    ports:
+      - "8085:8085"
+    environment:
+      PORT: "8085"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/healthz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    networks:
+      - silentpulse
+
+  mcp:
+    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-mcp:${IMAGE_TAG:-latest}
+    ports:
+      - "8090:8090"
+    environment:
+      MCP_TRANSPORT: "http"
+      MCP_ADDR: ":8090"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/healthz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    profiles:
+      - mcp
+    networks:
+      - silentpulse
+
+  retention-job:
+    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-retention-job:${IMAGE_TAG:-latest}
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - retention
+    networks:
+      - silentpulse
+
+  # --- Frontend ---
+
+  frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-frontend:${IMAGE_TAG:-latest}
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 10s
+      timeout: 3s
+      start_period: 30s
+      retries: 5
+    networks:
+      - silentpulse
+
+volumes:
+  postgres_data:
+
+networks:
+  silentpulse:
+    driver: bridge

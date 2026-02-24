@@ -1,0 +1,53 @@
+{{- if .Values.mcp.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: silentpulse-mcp
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: silentpulse-mcp
+    {{- include "silentpulse.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.mcp.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: silentpulse-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: silentpulse-mcp
+    spec:
+      containers:
+        - name: mcp
+          image: {{ .Values.mcp.image }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.mcp.port }}
+              protocol: TCP
+          env:
+            - name: MCP_TRANSPORT
+              value: "http"
+            - name: MCP_ADDR
+              value: {{ printf ":%d" (int .Values.mcp.port) | quote }}
+          envFrom:
+            - configMapRef:
+                name: silentpulse-config
+            - secretRef:
+                name: silentpulse-secret
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.mcp.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.mcp.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml .Values.mcp.resources | nindent 12 }}
+{{- end }}

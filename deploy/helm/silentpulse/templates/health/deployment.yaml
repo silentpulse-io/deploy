@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: silentpulse-health
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: silentpulse-health
+    {{- include "silentpulse.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.health.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: silentpulse-health
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: silentpulse-health
+    spec:
+      containers:
+        - name: health
+          image: {{ .Values.health.image }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.health.port }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.health.port | quote }}
+          envFrom:
+            - configMapRef:
+                name: silentpulse-config
+            - secretRef:
+                name: silentpulse-secret
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.health.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.health.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml .Values.health.resources | nindent 12 }}

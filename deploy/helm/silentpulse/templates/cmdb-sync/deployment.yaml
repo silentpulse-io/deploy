@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: silentpulse-cmdb-sync
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: silentpulse-cmdb-sync
+    {{- include "silentpulse.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.cmdbSync.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: silentpulse-cmdb-sync
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: silentpulse-cmdb-sync
+    spec:
+      containers:
+        - name: cmdb-sync
+          image: {{ .Values.cmdbSync.image }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.cmdbSync.port }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.cmdbSync.port | quote }}
+          envFrom:
+            - configMapRef:
+                name: silentpulse-config
+            - secretRef:
+                name: silentpulse-secret
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.cmdbSync.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.cmdbSync.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml .Values.cmdbSync.resources | nindent 12 }}

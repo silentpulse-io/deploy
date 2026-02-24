@@ -1,0 +1,43 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: silentpulse-ingress
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "silentpulse.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: silentpulse-api
+                port:
+                  number: {{ .Values.api.port }}
+          {{- if .Values.mcp.enabled }}
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: silentpulse-mcp
+                port:
+                  number: {{ .Values.mcp.port }}
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: silentpulse-frontend
+                port:
+                  number: {{ .Values.frontend.port }}
+{{- end }}

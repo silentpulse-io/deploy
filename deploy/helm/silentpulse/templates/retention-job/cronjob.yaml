@@ -1,0 +1,57 @@
+{{- if .Values.retentionJob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: silentpulse-retention-job
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: silentpulse-retention-job
+    {{- include "silentpulse.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.retentionJob.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: silentpulse-retention-job
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: retention-job
+              image: {{ .Values.retentionJob.image }}
+              imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+              args: ["--once"]
+              envFrom:
+                - configMapRef:
+                    name: silentpulse-config
+                - secretRef:
+                    name: silentpulse-secret
+              {{- if .Values.retentionJob.coldStorage.enabled }}
+              env:
+                - name: COLD_STORAGE_ENDPOINT
+                  value: {{ .Values.retentionJob.coldStorage.endpoint | quote }}
+                - name: COLD_STORAGE_BUCKET
+                  value: {{ .Values.retentionJob.coldStorage.bucket | quote }}
+                - name: COLD_STORAGE_REGION
+                  value: {{ .Values.retentionJob.coldStorage.region | quote }}
+                - name: COLD_STORAGE_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: silentpulse-secret
+                      key: cold-storage-access-key
+                      optional: true
+                - name: COLD_STORAGE_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: silentpulse-secret
+                      key: cold-storage-secret-key
+                      optional: true
+              {{- end }}
+              resources:
+                {{- toYaml .Values.retentionJob.resources | nindent 16 }}
+{{- end }}

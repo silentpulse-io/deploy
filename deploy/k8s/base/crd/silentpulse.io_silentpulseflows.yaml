@@ -1,0 +1,315 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.0
+  name: silentpulseflows.silentpulse.io
+spec:
+  group: silentpulse.io
+  names:
+    kind: SilentPulseFlow
+    listKind: SilentPulseFlowList
+    plural: silentpulseflows
+    shortNames:
+    - spflow
+    singular: silentpulseflow
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.flowID
+      name: Flow
+      type: string
+    - jsonPath: .spec.enabled
+      name: Enabled
+      type: boolean
+    - jsonPath: .spec.pulses[*].pulseID
+      name: Pulses
+      priority: 1
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: SilentPulseFlow is the Schema for the silentpulseflows API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SilentPulseFlowSpec defines the desired state of a SilentPulseFlow.
+            properties:
+              enabled:
+                description: Enabled controls whether the flow's workloads should
+                  be running.
+                type: boolean
+              flowID:
+                description: FlowID is the UUID of the flow in the SilentPulse database.
+                type: string
+              infraRef:
+                description: InfraRef references the ConfigMap and Secret containing
+                  infrastructure config.
+                properties:
+                  configMapName:
+                    description: ConfigMapName is the name of the ConfigMap with WORKER_IMAGE,
+                      SCHEDULER_IMAGE, REDIS_ADDR, etc.
+                    type: string
+                  secretName:
+                    description: SecretName is the name of the Secret with POSTGRES_DSN,
+                      ENCRYPTION_KEY, etc.
+                    type: string
+                required:
+                - configMapName
+                - secretName
+                type: object
+              pulses:
+                description: Pulses defines the list of pulse (checkpoint) configurations.
+                items:
+                  description: PulseSpec defines the configuration for a single pulse
+                    within a flow.
+                  properties:
+                    activeDeadlineSeconds:
+                      description: ActiveDeadlineSeconds overrides the default CronJob
+                        active deadline.
+                      format: int64
+                      type: integer
+                    collectorMode:
+                      description: CollectorMode is "realtime" (Deployment) or "batch"
+                        (CronJob).
+                      type: string
+                    enabled:
+                      description: Enabled controls whether this pulse's workloads
+                        should be running.
+                      type: boolean
+                    label:
+                      description: Label is a human-readable label for this pulse.
+                      type: string
+                    pluginType:
+                      description: |-
+                        PluginType is the integration point type (e.g. "splunk", "elasticsearch", "syslog").
+                        Resolved by the API layer before writing the CRD.
+                      type: string
+                    ports:
+                      description: Ports defines ports to expose on the worker container
+                        (realtime only).
+                      items:
+                        description: PulsePort describes a port to expose on the worker
+                          container and optional Service.
+                        properties:
+                          containerPort:
+                            description: ContainerPort is the port number on the container.
+                            format: int32
+                            type: integer
+                          name:
+                            description: Name is the port name (e.g. "syslog").
+                            type: string
+                          protocol:
+                            description: Protocol is "TCP" or "UDP".
+                            type: string
+                        required:
+                        - containerPort
+                        - name
+                        - protocol
+                        type: object
+                      type: array
+                    pulseID:
+                      description: PulseID is the UUID of the flow_pulse in the database.
+                      type: string
+                    replicas:
+                      description: Replicas overrides the default replica count for
+                        Deployment workloads.
+                      format: int32
+                      type: integer
+                    resources:
+                      description: Resources defines optional CPU/memory limits for
+                        workloads.
+                      properties:
+                        cpuMillis:
+                          description: CPUMillis is the CPU limit in millicores.
+                          format: int64
+                          type: integer
+                        memoryLimitMB:
+                          description: MemoryLimitMB is the memory limit in megabytes.
+                          format: int64
+                          type: integer
+                      type: object
+                    schedulerInterval:
+                      description: SchedulerInterval is a Go duration string (e.g.
+                        "5m", "1h").
+                      type: string
+                    serviceType:
+                      description: ServiceType is the K8s Service type when ports
+                        are defined.
+                      type: string
+                    timeWindow:
+                      description: TimeWindow is the time window for the scheduler
+                        evaluation.
+                      type: string
+                  required:
+                  - collectorMode
+                  - enabled
+                  - pluginType
+                  - pulseID
+                  - schedulerInterval
+                  - timeWindow
+                  type: object
+                type: array
+              tenantID:
+                description: TenantID is the UUID of the tenant that owns this flow.
+                type: string
+            required:
+            - enabled
+            - flowID
+            - infraRef
+            - pulses
+            - tenantID
+            type: object
+          status:
+            description: SilentPulseFlowStatus defines the observed state of a SilentPulseFlow.
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the flow's state.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                description: ObservedGeneration is the most recent generation observed
+                  by the controller.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the overall state of the flow.
+                type: string
+              pulseStatuses:
+                description: PulseStatuses contains per-pulse workload status.
+                items:
+                  description: PulseStatus describes the workload status for a single
+                    pulse.
+                  properties:
+                    pulseID:
+                      description: PulseID identifies the pulse.
+                      type: string
+                    schedulerStatus:
+                      description: SchedulerStatus describes the scheduler workload.
+                      properties:
+                        kind:
+                          description: Kind is "CronJob" or "Deployment".
+                          type: string
+                        message:
+                          description: Message contains optional status details.
+                          type: string
+                        name:
+                          description: Name is the K8s resource name.
+                          type: string
+                        ready:
+                          description: Ready indicates whether the workload is healthy.
+                          type: boolean
+                      required:
+                      - kind
+                      - name
+                      - ready
+                      type: object
+                    workerStatus:
+                      description: WorkerStatus describes the worker workload.
+                      properties:
+                        kind:
+                          description: Kind is "CronJob" or "Deployment".
+                          type: string
+                        message:
+                          description: Message contains optional status details.
+                          type: string
+                        name:
+                          description: Name is the K8s resource name.
+                          type: string
+                        ready:
+                          description: Ready indicates whether the workload is healthy.
+                          type: boolean
+                      required:
+                      - kind
+                      - name
+                      - ready
+                      type: object
+                  required:
+                  - pulseID
+                  - schedulerStatus
+                  - workerStatus
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,18 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: silentpulse-initdb
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: silentpulse-postgres
+    {{- include "silentpulse.labels" . | nindent 4 }}
+data:
+  01-extensions.sql: |-
+    -- SilentPulse: PostgreSQL extensions (superuser-level)
+    -- These run via initdb before the application starts.
+    -- The application's golang-migrate handles all schema creation.
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    CREATE EXTENSION IF NOT EXISTS "age";
+{{- end }}

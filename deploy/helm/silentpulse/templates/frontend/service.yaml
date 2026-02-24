@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: silentpulse-frontend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: silentpulse-frontend
+    {{- include "silentpulse.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.frontend.port }}
+      targetPort: {{ .Values.frontend.port }}
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: silentpulse-frontend
