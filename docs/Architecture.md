@@ -1,5 +1,7 @@
 SilentPulse — modularna, skalowana aplikacja.
 
+**Repozytoria:** Closed-core model — prywatny kod, publiczne artefakty deployment. Szczegóły: [repo-layout.md](repo-layout.md)
+
 ## System modułów
 
 SilentPulse używa systemu modułów. Szczegóły: [modules.md](modules.md)
