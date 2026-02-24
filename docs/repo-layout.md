@@ -85,6 +85,22 @@ The deploy repo has a `main-protection` ruleset:
 - Linear history enforced
 - No branch deletion or force-push
 
+## Branch and merge conventions
+
+The private repo (`silentpulse`) uses GitHub Free plan — rulesets and branch protection are not available on private repos. We rely on CI + team convention instead:
+
+- **CI runs on every PR** targeting `main` (Community Build, Enterprise Build, Frontend Build)
+- **Never merge a red PR** — if CI fails, fix it before merging
+- **Feature branches**: `feature/<milestone-name>` — one per milestone, developed independently
+- **Keep feature branches up to date** with `main` — merge or rebase `main` into your feature branch regularly
+- **PR review required** — at least one team member must approve before merge (convention, not enforced by GitHub)
+- **Before merge to main** — all gates must pass:
+  1. Community Build — build + vet + unit tests
+  2. Enterprise Build — build + vet + unit tests (with `-tags enterprise`)
+  3. Frontend Build — install + build
+  4. Integration tests
+  5. Pentester security review — approved
+
 ## Keeping deploy repo in sync
 
 When changing Helm chart, Docker Compose, K8s manifests, or public docs in the main repo, the corresponding files must be updated in the deploy repo as well. This is a manual process — treat the main repo as the source of truth and copy changes to deploy.
