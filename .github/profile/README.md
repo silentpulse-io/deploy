@@ -15,7 +15,7 @@ SilentPulse is a security visibility monitoring system. It detects when security
 
 | Repository | Description |
 |---|---|
-| [silentpulse](https://github.com/silentpulse-io/silentpulse) | Core platform (backend, frontend, Helm charts, MCP server) |
+| [deploy](https://github.com/silentpulse-io/deploy) | Deployment artifacts — Helm charts, Docker Compose, documentation |
 
 ## Links
 
