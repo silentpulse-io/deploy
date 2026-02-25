@@ -13,7 +13,7 @@ to query alert status, MITRE coverage, telemetry health, and asset inventory.
 | Variable             | Description                                   | Default                                |
 |----------------------|-----------------------------------------------|----------------------------------------|
 | `MCP_API_URL`        | SilentPulse REST API base URL (required)      | —                                      |
-| `MCP_API_TOKEN`      | Service account JWT token for API auth (required) | —                                  |
+| `JWT_SECRET`         | Shared signing key — MCP mints its own service JWT | (from envFrom secret)              |
 | `MCP_TENANT_ID`      | Tenant UUID                                   | `a0000000-0000-0000-0000-000000000001` |
 | `MCP_TRANSPORT`      | Transport: `stdio` or `http`                  | `stdio`                                |
 | `MCP_ADDR`           | HTTP listen address                           | `127.0.0.1:8090`                       |
@@ -62,7 +62,7 @@ Add to `~/.claude/claude_desktop_config.json`:
       "command": "/path/to/silentpulse-mcp",
       "env": {
         "MCP_API_URL": "http://silentpulse-api:8080",
-        "MCP_API_TOKEN": "<service-account-jwt-token>",
+        "JWT_SECRET": "<shared-jwt-signing-key>",
         "MCP_TENANT_ID": "<your-tenant-uuid>"
       }
     }
@@ -109,8 +109,8 @@ This isolates the MCP server from the database and enforces all authorization ru
 
 ### Health Check
 
-In HTTP mode, the MCP server exposes `/healthz` which pings `GET /api/v1/alerts/stats`
-to verify backend connectivity and API authentication.
+The MCP server exposes `/healthz` as a simple liveness probe (returns 200 OK).
+It does not proxy to the API — K8s liveness should only check if the process is alive.
 
 ### MITRE module
 MITRE-related resources and tools are conditionally registered when `MCP_MITRE_ENABLED=true`.
@@ -131,10 +131,7 @@ mcp:
   enabled: true
   image: silentpulse-mcp:latest
   port: 8090
-  env:
-    MCP_API_URL: "http://silentpulse-api:8080"
-    MCP_API_TOKEN: "<service-account-jwt>"
-    MCP_MITRE_ENABLED: "true"
+  apiKey: ""  # generate with: openssl rand -hex 32
 ```
 
 Creates a Deployment + ClusterIP Service. Accessible at `silentpulse-mcp:8090` within the cluster.

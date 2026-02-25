@@ -112,6 +112,8 @@ mcp:
   image: silentpulse-mcp:latest
   replicas: 1
   port: 8090
+  apiKey: ""  # Required for HTTP transport (min 32 chars) — generate with: openssl rand -hex 32
+  tenantId: "a0000000-0000-0000-0000-000000000001"  # Tenant UUID for MCP service account
   resources:
     requests:
       cpu: 10m
