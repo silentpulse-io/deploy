@@ -29,6 +29,17 @@ spec:
               value: "http"
             - name: MCP_ADDR
               value: {{ printf ":%d" (int .Values.mcp.port) | quote }}
+            - name: MCP_API_URL
+              value: {{ .Values.mcp.apiUrl | default "http://silentpulse-api:8080" | quote }}
+            - name: MCP_TENANT_ID
+              value: {{ .Values.mcp.tenantId | default "a0000000-0000-0000-0000-000000000001" | quote }}
+            {{- if .Values.mcp.apiKey }}
+            - name: MCP_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: silentpulse-secret
+                  key: MCP_API_KEY
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: silentpulse-config
