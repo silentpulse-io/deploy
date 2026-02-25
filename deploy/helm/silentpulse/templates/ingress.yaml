@@ -8,6 +8,7 @@ metadata:
     {{- include "silentpulse.labels" . | nindent 4 }}
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/app-root: /ui/
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -33,7 +34,7 @@ spec:
                 port:
                   number: {{ .Values.mcp.port }}
           {{- end }}
-          - path: /
+          - path: /ui
             pathType: Prefix
             backend:
               service:

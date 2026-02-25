@@ -30,6 +30,21 @@ Komponenty UI renderują się warunkowo:
 {modules.aiAssistant && <AIAssistantPanel />}
 ```
 
+## URL Structure
+
+Frontend jest serwowany pod `basePath: '/ui'` (konfiguracja w `next.config.js`).
+
+| Prefix | Serwis | Auth |
+|--------|--------|------|
+| `/api/v1/*` | REST API (Go) | JWT Bearer |
+| `/mcp` | MCP Protocol | API Key |
+| `/ui/*` | Frontend (Next.js) | Session/JWT |
+| `/` | Redirect → `/ui/` | — |
+
+Next.js automatycznie prefixuje wszystkie `<Link>`, `router.push()`, static assets
+i `next/image` ścieżką `/ui`. Wywołania API (`fetch('/api/v1/...')`) są absolutne
+i trafiają bezpośrednio do backendu przez ingress.
+
 ## Tech Stack
 
 | Komponent          | Technologia                          |
