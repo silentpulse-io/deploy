@@ -231,7 +231,7 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/ui"]
       interval: 10s
       timeout: 3s
       start_period: 30s
