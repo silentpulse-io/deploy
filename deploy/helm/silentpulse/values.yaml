@@ -156,5 +156,9 @@ auth:
 license:
   key: ""
 
+grafana:
+  dashboards:
+    enabled: false  # Create ConfigMap with dashboard JSON for Grafana sidecar auto-provisioning
+
 connectorHub:
   url: "https://hub.silentpulse.io"
