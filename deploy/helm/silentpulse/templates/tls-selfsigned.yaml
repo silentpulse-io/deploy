@@ -1,0 +1,33 @@
+{{- if and .Values.ingress.enabled .Values.ingress.tls.enabled .Values.ingress.tls.selfSigned }}
+# Self-signed TLS certificate via cert-manager CRDs.
+# Requires cert-manager to be installed in the cluster.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: silentpulse-selfsigned-issuer
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "silentpulse.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: silentpulse-tls-selfsigned
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "silentpulse.labels" . | nindent 4 }}
+spec:
+  secretName: silentpulse-tls-selfsigned
+  issuerRef:
+    name: silentpulse-selfsigned-issuer
+    kind: Issuer
+  dnsNames:
+    - {{ .Values.ingress.host }}
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  duration: 8760h    # 1 year
+  renewBefore: 720h  # 30 days
+{{- end }}
