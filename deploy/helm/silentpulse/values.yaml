@@ -114,6 +114,7 @@ mcp:
   port: 8090
   apiKey: ""  # Required for HTTP transport (min 32 chars) — generate with: openssl rand -hex 32
   tenantId: "a0000000-0000-0000-0000-000000000001"  # Tenant UUID for MCP service account
+  clientRole: "admin"  # RBAC role: viewer (read-only), analyst (read+write), admin (full access)
   resources:
     requests:
       cpu: 10m
@@ -144,7 +145,17 @@ ingress:
   className: nginx
   host: silentpulse.local
   annotations:
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+  tls:
+    enabled: false
+    secretName: ""          # Option 1: existing TLS Secret (BYO cert)
+    selfSigned: false       # Option 2: auto-generate self-signed cert (requires cert-manager)
+    certManager:
+      enabled: false        # Option 3: cert-manager + Let's Encrypt
+      issuerRef:
+        name: letsencrypt-prod
+        kind: ClusterIssuer
 
 auth:
   jwtSecret: ""  # Required (min 32 chars) — generate with: openssl rand -hex 32
@@ -152,13 +163,18 @@ auth:
   encryptionKey: ""
   healthAPIKey: ""  # External health metrics API key — generate with: openssl rand -hex 32
   perTenantEncryption: false
+  providerName: ""  # SSO display name on login page (e.g. "Okta", "Azure AD")
+  idpCACertSecret: ""  # K8s Secret containing CA cert for IdP TLS (key: ca.crt)
 
 license:
   key: ""
+
+connectorHub:
+  url: "https://hub.silentpulse.io"
 
 grafana:
   dashboards:
     enabled: false  # Create ConfigMap with dashboard JSON for Grafana sidecar auto-provisioning
 
-connectorHub:
-  url: "https://hub.silentpulse.io"
+telemetry:
+  enabled: false   # Opt-in anonymous usage statistics

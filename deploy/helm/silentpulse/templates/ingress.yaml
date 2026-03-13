@@ -8,11 +8,33 @@ metadata:
     {{- include "silentpulse.labels" . | nindent 4 }}
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/app-root: /ui/
+    {{- if .Values.ingress.tls.enabled }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "true"
+    {{- end }}
+    {{- if and .Values.ingress.tls.enabled .Values.ingress.tls.certManager.enabled }}
+    cert-manager.io/{{ .Values.ingress.tls.certManager.issuerRef.kind | default "ClusterIssuer" | lower }}: {{ .Values.ingress.tls.certManager.issuerRef.name | quote }}
+    {{- end }}
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      {{- if .Values.ingress.tls.secretName }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+      {{- else if .Values.ingress.tls.selfSigned }}
+      secretName: silentpulse-tls-selfsigned
+      {{- else if .Values.ingress.tls.certManager.enabled }}
+      secretName: silentpulse-tls-certmanager
+      {{- end }}
+  {{- end }}
   rules:
     - host: {{ .Values.ingress.host }}
       http:
@@ -33,7 +55,7 @@ spec:
                 port:
                   number: {{ .Values.mcp.port }}
           {{- end }}
-          - path: /
+          - path: /ui
             pathType: Prefix
             backend:
               service:

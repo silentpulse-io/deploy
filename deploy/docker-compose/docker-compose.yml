@@ -46,7 +46,9 @@ services:
   # --- Backend Services ---
 
   api:
-    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-api:${IMAGE_TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.api
     ports:
       - "8080:8080"
     environment:
@@ -78,7 +80,9 @@ services:
       - silentpulse
 
   cmdb-sync:
-    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-cmdb-sync:${IMAGE_TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.cmdb-sync
     ports:
       - "8082:8082"
     environment:
@@ -102,7 +106,9 @@ services:
       - silentpulse
 
   health:
-    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-health:${IMAGE_TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.health
     ports:
       - "8083:8083"
     environment:
@@ -129,7 +135,9 @@ services:
       - silentpulse
 
   notifications:
-    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-notifications:${IMAGE_TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.notifications
     ports:
       - "8084:8084"
     environment:
@@ -155,7 +163,9 @@ services:
       - silentpulse
 
   reporting:
-    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-reporting:${IMAGE_TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.reporting
     ports:
       - "8085:8085"
     environment:
@@ -187,6 +197,7 @@ services:
       MCP_ADDR: ":8090"
       MCP_API_URL: "http://api:8080"
       MCP_TENANT_ID: "${MCP_TENANT_ID:-a0000000-0000-0000-0000-000000000001}"
+      MCP_CLIENT_ROLE: "${MCP_CLIENT_ROLE:-admin}"
       MCP_API_KEY: "${MCP_API_KEY}"
       JWT_SECRET: "${JWT_SECRET}"
     depends_on:
@@ -205,7 +216,9 @@ services:
       - silentpulse
 
   retention-job:
-    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-retention-job:${IMAGE_TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.retention-job
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
@@ -221,10 +234,32 @@ services:
     networks:
       - silentpulse
 
+  # --- Build-only (spawned dynamically by operator) ---
+
+  worker:
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.worker
+    profiles:
+      - build-only
+    networks:
+      - silentpulse
+
+  scheduler:
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.scheduler
+    profiles:
+      - build-only
+    networks:
+      - silentpulse
+
   # --- Frontend ---
 
   frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io/silentpulse-io}/silentpulse-frontend:${IMAGE_TAG:-latest}
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.frontend
     ports:
       - "3000:3000"
     depends_on:

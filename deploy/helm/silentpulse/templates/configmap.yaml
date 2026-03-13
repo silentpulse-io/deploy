@@ -14,5 +14,9 @@ data:
   JWT_EXPIRY: {{ .Values.auth.jwtExpiry | quote }}
   NOTIFICATION_POLL_INTERVAL: {{ .Values.notifications.pollInterval | quote }}
   CONNECTOR_HUB_URL: {{ .Values.connectorHub.url | quote }}
+  TELEMETRY_ENABLED: {{ .Values.telemetry.enabled | quote }}
   WORKER_IMAGE: {{ .Values.worker.image }}
   SCHEDULER_IMAGE: {{ .Values.scheduler.image }}
+  {{- if .Values.auth.providerName }}
+  AUTH_PROVIDER_NAME: {{ .Values.auth.providerName | quote }}
+  {{- end }}
